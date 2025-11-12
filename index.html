@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebNN NPU Stress Test - MobileNetV2</title>
+    <title>WebNN NPU Stress Test - MobileNetV2 (Local)</title>
     <style>
         * {
             margin: 0;
@@ -55,6 +55,16 @@
             text-align: center;
             font-weight: bold;
             font-size: 18px;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            color: #1565c0;
+            font-size: 14px;
         }
 
         .metrics-grid {
@@ -212,21 +222,20 @@
             display: none;
         }
 
-        .device-indicator {
-            display: inline-block;
-            padding: 5px 15px;
-            background: #4CAF50;
-            color: white;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            margin-left: 10px;
-        }
-
         h3 {
             color: #333;
             margin-top: 20px;
             margin-bottom: 10px;
+        }
+
+        .download-link {
+            color: #2196F3;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .download-link:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -234,7 +243,16 @@
     <div class="container">
         <div class="header">
             <h1>🧠 WebNN NPU Accelerator</h1>
-            <p class="subtitle">MobileNetV2 Image Classification - Stress Test Your NPU</p>
+            <p class="subtitle">MobileNetV2 Image Classification - Local Model Version</p>
+        </div>
+
+        <div class="info-box">
+            <strong>📁 Local Model Setup Required</strong><br>
+            This version loads the model from your local folder. Make sure to place <code>model.onnx</code> and <code>model.data</code> files in the same directory as this HTML file.
+            <br><br>
+            <strong>Download Model Files:</strong><br>
+            Download from: <a href="https://huggingface.co/Xenova/mobilenetv2-1.4/tree/main/onnx" target="_blank" class="download-link">Hugging Face - MobileNetV2</a><br>
+            Files needed: <code>model.onnx</code> and <code>model.data</code>
         </div>
 
         <div class="status-box" id="statusBox">⏳ Initializing WebNN...</div>
@@ -425,10 +443,10 @@
                 log('  Device Type: npu (enforced)', 'info');
                 log('  Power Preference: high-performance', 'info');
 
-                // Using Hugging Face CDN for model (has proper CORS headers)
-                const modelUrl = 'https://huggingface.co/Xenova/mobilenetv2-1.4/resolve/main/onnx/model.onnx';
-                log(`📦 Model URL: ${modelUrl}`, 'info');
-                log('Downloading model (this may take 1-2 minutes on first load)...', 'warn');
+                // Load model from local folder (same directory as HTML file)
+                const modelPath = './model.onnx';
+                log(`📦 Model Path: ${modelPath}`, 'info');
+                log('Loading model from local folder...', 'warn');
 
                 const startBuild = performance.now();
 
@@ -447,12 +465,12 @@
                     enableCpuMemArena: false
                 };
 
-                session = await ort.InferenceSession.create(modelUrl, options);
+                session = await ort.InferenceSession.create(modelPath, options);
 
                 const buildTime = (performance.now() - startBuild).toFixed(2);
                 document.getElementById('buildTime').textContent = buildTime + 'ms';
 
-                log(`✅ Model loaded successfully!`, 'success');
+                log(`✅ Model loaded successfully from local folder!`, 'success');
                 log(`⏱️ Build time: ${buildTime}ms`, 'success');
 
                 // Get input/output info
@@ -460,8 +478,6 @@
                 log(`  Inputs: ${session.inputNames.join(', ')}`, 'info');
                 log(`  Outputs: ${session.outputNames.join(', ')}`, 'info');
 
-                // Log execution provider info
-                const providers = session.getMetadata();
                 log(`🎯 NPU Backend Ready for Inference!`, 'success');
                 log(`⚡ Watch your NPU utilization spike when running inference!`, 'success');
 
@@ -474,10 +490,12 @@
                 log(`Stack: ${error.stack}`, 'error');
 
                 log('Troubleshooting:', 'warn');
-                log('  1. Enable WebNN API: edge://flags → Search "WebNN" → Enabled', 'warn');
-                log('  2. Update NPU drivers: Device Manager → Intel AI Boost / Hexagon', 'warn');
-                log('  3. Use Microsoft Edge Canary/Dev build', 'warn');
-                log('  4. Verify Snapdragon X series with NPU', 'warn');
+                log('  1. Verify model.onnx and model.data are in same folder as HTML', 'warn');
+                log('  2. Check file paths are correct (case-sensitive on some systems)', 'warn');
+                log('  3. Enable WebNN API: edge://flags → Search "WebNN" → Enabled', 'warn');
+                log('  4. Update NPU drivers: Device Manager → Intel AI Boost / Hexagon', 'warn');
+                log('  5. Use Microsoft Edge Canary/Dev build', 'warn');
+                log('  6. Verify Snapdragon X series with NPU', 'warn');
 
                 updateStatus('❌ Failed to initialize WebNN', 'error');
             }
