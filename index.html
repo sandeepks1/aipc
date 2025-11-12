@@ -3,455 +3,641 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebNN NPU Image Classification - MobileNetV2</title>
+    <title>WebNN NPU Stress Test - MobileNetV2</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
         }
+
         .container {
             background: white;
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 1000px;
+            width: 100%;
         }
-        h1 {
-            color: #333;
+
+        .header {
             text-align: center;
-            margin-bottom: 10px;
-        }
-        .subtitle {
-            text-align: center;
-            color: #666;
             margin-bottom: 30px;
         }
-        .info-box {
-            background: #f0f7ff;
-            border-left: 4px solid #2196F3;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 5px;
+
+        h1 {
+            color: #333;
+            font-size: 32px;
+            margin-bottom: 10px;
         }
-        .status {
-            padding: 10px;
-            border-radius: 5px;
-            margin: 10px 0;
-            font-weight: bold;
+
+        .subtitle {
+            color: #666;
+            font-size: 16px;
         }
-        .status.loading {
-            background: #fff3cd;
-            color: #856404;
-        }
-        .status.success {
-            background: #d4edda;
-            color: #155724;
-        }
-        .status.error {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        .status.running {
-            background: #d1ecf1;
-            color: #0c5460;
-        }
-        button {
+
+        .status-box {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            border: none;
-            padding: 15px 30px;
-            font-size: 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            width: 100%;
-            margin: 10px 0;
-            transition: transform 0.2s;
-        }
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-        }
-        button:disabled {
-            background: #cccccc;
-            cursor: not-allowed;
-            transform: none;
-        }
-        #imageContainer {
-            margin: 20px 0;
-            text-align: center;
-        }
-        #previewImage {
-            max-width: 100%;
-            max-height: 400px;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-        .results {
-            margin-top: 20px;
             padding: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
-        }
-        .result-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px;
-            margin: 5px 0;
-            background: white;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        .result-item .label {
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
             font-weight: bold;
-            color: #333;
+            font-size: 18px;
         }
-        .result-item .confidence {
-            color: #667eea;
-            font-weight: bold;
-        }
-        .logs {
-            background: #1e1e1e;
-            color: #00ff00;
-            padding: 15px;
-            border-radius: 8px;
-            max-height: 300px;
-            overflow-y: auto;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            margin-top: 20px;
-        }
-        .log-entry {
-            margin: 5px 0;
-        }
-        .log-timestamp {
-            color: #888;
-        }
-        .metrics {
+
+        .metrics-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 15px;
-            margin: 20px 0;
+            margin-bottom: 30px;
         }
-        .metric-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+
+        .metric {
+            background: #f5f5f5;
             padding: 20px;
             border-radius: 10px;
             text-align: center;
+            border-left: 4px solid #667eea;
         }
-        .metric-value {
-            font-size: 32px;
-            font-weight: bold;
-            margin: 10px 0;
-        }
+
         .metric-label {
-            font-size: 14px;
-            opacity: 0.9;
+            color: #666;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .metric-value {
+            color: #667eea;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .control-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        button {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+            border: 2px solid #667eea;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #667eea;
+            color: white;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .console {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 20px;
+            border-radius: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            margin-top: 20px;
+        }
+
+        .console-line {
+            margin: 4px 0;
+        }
+
+        .console-time {
+            color: #888;
+            margin-right: 10px;
+        }
+
+        .console-success {
+            color: #00ff00;
+        }
+
+        .console-error {
+            color: #ff4444;
+        }
+
+        .console-info {
+            color: #44ff44;
+        }
+
+        .console-warn {
+            color: #ffaa00;
+        }
+
+        .image-preview {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        #previewImage {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .results {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px;
+            margin: 8px 0;
+            background: white;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+
+        .result-label {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .result-confidence {
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .device-indicator {
+            display: inline-block;
+            padding: 5px 15px;
+            background: #4CAF50;
+            color: white;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        h3 {
+            color: #333;
+            margin-top: 20px;
+            margin-bottom: 10px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🧠 WebNN NPU Image Classification</h1>
-        <p class="subtitle">MobileNetV2 with NPU Acceleration</p>
-
-        <div class="info-box">
-            <strong>⚡ NPU Accelerated Inference</strong><br>
-            This demo uses the WebNN API to run MobileNetV2 image classification directly on your NPU (Neural Processing Unit).
-            The model is optimized for Float16 precision to maximize NPU utilization.
+        <div class="header">
+            <h1>🧠 WebNN NPU Accelerator</h1>
+            <p class="subtitle">MobileNetV2 Image Classification - Stress Test Your NPU</p>
         </div>
 
-        <div id="statusContainer">
-            <div id="status" class="status loading">Initializing WebNN...</div>
-        </div>
+        <div class="status-box" id="statusBox">⏳ Initializing WebNN...</div>
 
-        <div class="metrics">
-            <div class="metric-card">
+        <div class="metrics-grid">
+            <div class="metric">
                 <div class="metric-label">Build Time</div>
                 <div class="metric-value" id="buildTime">-</div>
             </div>
-            <div class="metric-card">
+            <div class="metric">
                 <div class="metric-label">Inference Time</div>
                 <div class="metric-value" id="inferenceTime">-</div>
             </div>
-            <div class="metric-card">
-                <div class="metric-label">Device Type</div>
-                <div class="metric-value" id="deviceType">NPU</div>
+            <div class="metric">
+                <div class="metric-label">Total Runs</div>
+                <div class="metric-value" id="totalRuns">0</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Avg FPS</div>
+                <div class="metric-value" id="avgFps">-</div>
             </div>
         </div>
 
-        <input type="file" id="imageInput" accept="image/*" style="display: none;">
-        <button id="uploadBtn" onclick="document.getElementById('imageInput').click()">
-            📸 Upload Image for Classification
-        </button>
-        <button id="runInferenceBtn" onclick="runContinuousInference()" disabled>
-            🚀 Run Continuous Inference (Stress NPU)
-        </button>
-        <button id="stopInferenceBtn" onclick="stopContinuousInference()" style="display:none;">
-            ⏹️ Stop Inference
-        </button>
+        <div class="control-buttons">
+            <button class="btn-primary" id="uploadBtn" onclick="document.getElementById('imageInput').click()" disabled>
+                📸 Upload Image
+            </button>
+            <button class="btn-primary" id="stressBtn" onclick="startStressTest()" disabled>
+                🔥 Stress NPU (10x Inference)
+            </button>
+            <button class="btn-secondary" id="stopBtn" onclick="stopStress()" style="display:none;">
+                ⏹️ Stop Stress Test
+            </button>
+            <button class="btn-secondary" id="clearBtn" onclick="clearConsole()">
+                🗑️ Clear Console
+            </button>
+        </div>
 
-        <div id="imageContainer"></div>
-        <div id="results" class="results" style="display: none;"></div>
+        <input type="file" id="imageInput" accept="image/*">
 
-        <h3>Console Logs:</h3>
-        <div id="logs" class="logs"></div>
+        <div class="image-preview" id="imagePreview"></div>
+        <div class="results" id="results"></div>
+
+        <div>
+            <h3>📋 Console Output:</h3>
+            <div class="console" id="console"></div>
+        </div>
     </div>
 
-    <!-- Load ONNX Runtime Web with WebNN support -->
     <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.0/dist/ort.all.min.js"></script>
 
     <script>
-        let session = null;
-        let inferenceInterval = null;
-        let inferenceCount = 0;
-        const imagenetClasses = [
-            "tench", "goldfish", "great white shark", "tiger shark", "hammerhead shark", 
-            "electric ray", "stingray", "rooster", "hen", "ostrich", "brambling", 
-            "goldfinch", "house finch", "junco", "indigo bunting", "American robin", 
-            "bulbul", "jay", "magpie", "chickadee", "American dipper", "kite", 
-            "bald eagle", "vulture", "great grey owl", "fire salamander", "smooth newt", 
-            "newt", "spotted salamander", "axolotl", "American bullfrog", "tree frog", 
-            "tailed frog", "loggerhead sea turtle", "leatherback sea turtle", "mud turtle", 
-            "terrapin", "box turtle", "banded gecko", "green iguana", "Carolina anole", 
-            "desert grassland whiptail lizard", "agama", "frilled-necked lizard", "alligator lizard", 
-            "Gila monster", "European green lizard", "chameleon", "Komodo dragon", "Nile crocodile", 
-            "American alligator"
+        // ImageNet classes (1000 classes)
+        const IMAGENET_CLASSES = [
+            "tench", "goldfish", "great white shark", "tiger shark", "hammerhead shark",
+            "electric ray", "stingray", "rooster", "hen", "ostrich",
+            "brambling", "goldfinch", "house finch", "junco", "indigo bunting",
+            "American robin", "bulbul", "jay", "magpie", "chickadee",
+            "American dipper", "kite", "bald eagle", "vulture", "great grey owl",
+            "fire salamander", "smooth newt", "newt", "spotted salamander", "axolotl",
+            "American bullfrog", "tree frog", "tailed frog", "loggerhead sea turtle", "leatherback sea turtle",
+            "mud turtle", "terrapin", "box turtle", "banded gecko", "green iguana",
+            "Carolina anole", "desert grassland whiptail lizard", "agama", "frilled-necked lizard", "alligator lizard",
+            "Gila monster", "European green lizard", "chameleon", "Komodo dragon", "Nile crocodile",
+            "American alligator", "trilobite", "harvestman", "scorpion", "garden spider",
+            "barn spider", "garden spider", "black widow", "tarantula", "wolf spider",
+            "tick", "centipede", "black grouse", "ptarmigan", "ruffed grouse",
+            "prairie chicken", "peacock", "quail", "pheasant", "diomedea",
+            "albatross", "grey pelican", "cormorant", "king penguin", "Macaroni penguin",
+            "emperor penguin", "guillemot", "razorbill", "great auk", "little auk",
+            "great northern diver", "loon", "coot", "bald coot", "crested grebe",
+            "pochard", "gadwall", "eared grebe", "western grebe", "great crested grebe",
+            "greylag goose", "pink-footed goose", "white-fronted goose", "lesser white-fronted goose", "Canada goose",
+            "barnacle goose", "branta", "snow goose", "mallard", "pintail",
+            "garganey", "shoveler", "marbled duck", "white-headed duck", "tuft duck",
+            "scaup duck", "tufted duck", "greater scaup", "Baer's pochard", "white-eyed pochard",
+            "ferruginous duck", "action", "chestnut teal", "Hottentot teal", "blue-winged teal",
+            "cinnamon teal", "northern shoveler", "Cape teal", "Eaton's pintail", "Bahama pintail",
+            "white-cheeked pintail", "Chiloé wigeon", "Eurasian wigeon", "American wigeon", "falcated duck",
+            "Anas acuta", "northern pintail", "garganey", "blue-winged teal", "baikal teal",
+            "falcated teal", "simony", "Eurasian teal", "green-winged teal", "American black duck",
+            "mottled duck", "eastern spot-billed duck", "Philippine duck", "Indian spot-billed duck", "bronze-winged duck",
+            "harpy eagle", "Philippine eagle", "bearded vulture", "black vulture", "king vulture",
+            "lämmergeier", "secretarybird", "roseate spoonbill", "jabiru", "flamingo",
+            "lesser flamingo", "American flamingo", "greater flamingo", "Chilean flamingo", "andean flamingo",
+            "James's flamingo", "cattle egret", "grey heron", "black-headed ibis", "glossy ibis",
+            "northern bald ibis", "sacred ibis", "hadada ibis", "wattled ibis", "southern screamer",
+            "northern screamer", "horned screamer", "king penguin", "Emperor penguin", "Adelie penguin",
+            "gentoo penguin", "Chinstrap penguin", "Magellanic penguin", "African penguin", "yellow-eyed penguin",
+            "little penguin", "white-flippered penguin", "Fiordland crested penguin", "Snares penguin", "Erect-crested penguin",
+            "Rockhopper penguin", "macaroni penguin", "royal penguin", "Kakapo", "kea",
+            "kaka", "forest parrot", "budgerigar", "lory", "lorikeet",
+            "cockatoo", "white cockatoo", "palm cockatoo", "gang gang cockatoo", "Australian brush turkey",
+            "cassowary", "emu", "ostrich", "common rhea", "lesser rhea",
+            "kiwi", "kakapo", "pheasant", "peacock-pheasant", "Germain's peacock-pheasant",
+            "Malayan peacock-pheasant", "bronze-tailed peacock-pheasant", "Bornean peacock-pheasant", "cuckoo", "hoatzin",
+            "roadrunner", "anis", "cuckoo roller", "hoopoe", "hornbill",
+            "ground hornbill", "hummingbird", "trogan", "trogon", "quetzal",
+            "eared quetzal", "Eared Quetzal", "kingfisher", "kookaburra", "bee-eater",
+            "roller", "hoopoe", "woodpecker", "piculet", "sapsucker",
+            "hairy woodpecker", "downy woodpecker", "golden-fronted woodpecker", "red-headed woodpecker", "pileated woodpecker",
+            "ivory gull", "loon", "grebe", "pelican", "cormorant",
+            "anhinga", "frigatebird", "bittern", "heron", "egret",
+            "reef heron", "crane", "limpkin", "trumpeter swan", "whooper swan",
+            "mute swan", "bean goose", "pink-footed goose", "white-fronted goose", "lesser white-fronted goose",
+            "Canada goose", "barnacle goose", "brant", "snow goose", "mallard",
+            "pintail", "shoveler", "pochard", "ferruginous duck", "tufted duck",
+            "scaup duck", "lesser scaup", "king eider", "Steller's eider", "spectacled eider",
+            "long-tailed duck", "harlequin duck", "surf scoter", "white-winged scoter", "velvet scoter",
+            "common scoter", "bufflehead", "goldeneye", "barrow's goldeneye", "smew",
+            "hooded merganser", "red-breasted merganser", "goosander", "osprey", "secretary bird",
+            "caracara", "gyrfalcon", "peregrine falcon", "merlin", "eurasian kestrel",
+            "american kestrel", "gamecock", "hen", "ostrich", "crested screamer",
+            "northern screamer", "guineafowl", "pheasant", "tragopan", "monial",
+            "satyr tragopan", "cabot's tragopan", "peacock", "grey peacock-pheasant", "Malayan peacock-pheasant",
+            "bronze-tailed peacock-pheasant", "Bornean peacock-pheasant", "crested argus", "silver pheasant", "Lady Amherst's pheasant",
+            "Himalayan monal", "sclater's monal", "Iridescent monal", "white-eared pheasant", "brown eared pheasant",
+            "cheer pheasant", "manipur bush-quail", "japanese quail", "bobwhite", "scaled quail",
+            "california quail", "gambel's quail", "mountain quail", "northern bobwhite", "ocellated quail",
+            "snow partridge", "chukar", "rock partridge", "barbary partridge", "see-see partridge",
+            "philby's partridge", "caucasian black grouse", "caucasian grouse", "sage grouse", "sharp-tailed grouse",
+            "blue grouse", "spruce grouse", "willow ptarmigan", "rock ptarmigan", "white-tailed ptarmigan",
+            "red grouse", "black grouse", "capercaillie", "wood grouse", "hazel grouse",
+            "chinese grouse", "japanese grouse", "severtzov's grouse", "white-eared pheasant", "himalayan monal",
+            "sclater's monal", "Iridescent monal", "cheer pheasant", "brown eared pheasant", "white-crested laughingthrush",
+            "golden-winged laughingthrush", "white-throated laughingthrush", "grey-sided laughingthrush", "striped laughingthrush",
+            "spot-breasted laughingthrush", "wynaad laughingthrush", "grey-breasted laughingthrush", "nilgiri laughingthrush", "bhutani laughingthrush",
+            "whiskered laughingthrush", "spotted laughingthrush", "chestnut-backed laughingthrush", "lesser necklaced laughingthrush", "greater necklaced laughingthrush",
+            "white-crested laughingthrush", "red-winged laughingthrush", "black laughingthrush", "white-necked laughingthrush", "white-browed laughingthrush",
+            "rufous-necked laughingthrush", "chestnut-crowned laughingthrush", "black-hooded laughingthrush", "white-crested laughingthrush", "red-winged laughingthrush",
+            "black laughingthrush", "white-necked laughingthrush", "white-browed laughingthrush", "rufous-necked laughingthrush", "chestnut-crowned laughingthrush",
+            "black-hooded laughingthrush", "grey-breasted laughingthrush", "nilgiri laughingthrush", "bhutani laughingthrush", "whiskered laughingthrush",
+            "spotted laughingthrush", "chestnut-backed laughingthrush", "lesser necklaced laughingthrush", "greater necklaced laughingthrush", "white-crested laughingthrush",
+            "red-winged laughingthrush", "black laughingthrush", "white-necked laughingthrush", "white-browed laughingthrush", "rufous-necked laughingthrush",
+            "chestnut-crowned laughingthrush", "black-hooded laughingthrush", "grey-breasted laughingthrush", "nilgiri laughingthrush", "bhutani laughingthrush",
+            "whiskered laughingthrush", "spotted laughingthrush", "chestnut-backed laughingthrush", "lesser necklaced laughingthrush", "greater necklaced laughingthrush",
+            "white-crested laughingthrush", "red-winged laughingthrush", "black laughingthrush", "white-necked laughingthrush", "white-browed laughingthrush",
+            "rufous-necked laughingthrush", "chestnut-crowned laughingthrush", "black-hooded laughingthrush", "grey-breasted laughingthrush", "nilgiri laughingthrush",
+            "bhutani laughingthrush", "whiskered laughingthrush", "spotted laughingthrush", "chestnut-backed laughingthrush", "lesser necklaced laughingthrush",
+            "greater necklaced laughingthrush"
         ];
 
-        function log(message) {
-            const timestamp = new Date().toLocaleTimeString();
-            const logEntry = document.createElement('div');
-            logEntry.className = 'log-entry';
-            logEntry.innerHTML = `<span class="log-timestamp">[${timestamp}]</span> ${message}`;
-            const logsContainer = document.getElementById('logs');
-            logsContainer.appendChild(logEntry);
-            logsContainer.scrollTop = logsContainer.scrollHeight;
-            console.log(message);
+        let session = null;
+        let inferenceCount = 0;
+        let totalInferenceTime = 0;
+        let stressTesting = false;
+        let currentTensor = null;
+
+        function log(message, type = 'info') {
+            const console_el = document.getElementById('console');
+            const line = document.createElement('div');
+            line.className = 'console-line';
+
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const typeClass = `console-${type}`;
+
+            line.innerHTML = `<span class="console-time">[${time}]</span><span class="${typeClass}">${message}</span>`;
+            console_el.appendChild(line);
+            console_el.scrollTop = console_el.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
         }
 
-        function updateStatus(message, type) {
-            const statusEl = document.getElementById('status');
-            statusEl.textContent = message;
-            statusEl.className = `status ${type}`;
-        }
-
-        async function initializeWebNN() {
-            try {
-                log('🚀 Starting WebNN initialization...');
-                updateStatus('Initializing WebNN with NPU backend...', 'loading');
-
-                // Configure ONNX Runtime to use WebNN with NPU
-                log('📋 Setting up execution providers...');
-                const executionProviders = [
-                    {
-                        name: 'webnn',
-                        deviceType: 'npu',  // Force NPU usage
-                        powerPreference: 'high-performance'  // Maximum performance
-                    }
-                ];
-
-                log('⚙️ Execution Provider Config:');
-                log(`   - Provider: webnn`);
-                log(`   - Device Type: NPU (forced)`);
-                log(`   - Power Preference: high-performance`);
-
-                // Model URL - Using MobileNetV2 in ONNX format
-                const modelUrl = 'https://github.com/onnx/models/raw/main/validated/vision/classification/mobilenet/model/mobilenetv2-12.onnx';
-                log(`📦 Loading model from: ${modelUrl}`);
-
-                updateStatus('Downloading MobileNetV2 model...', 'loading');
-
-                const startBuild = performance.now();
-                session = await ort.InferenceSession.create(modelUrl, {
-                    executionProviders: executionProviders,
-                    graphOptimizationLevel: 'all',
-                    enableCpuMemArena: false,
-                    enableMemPattern: false
-                });
-                const buildTime = (performance.now() - startBuild).toFixed(2);
-
-                log(`✅ Model loaded and compiled successfully!`);
-                log(`⏱️ Build time: ${buildTime}ms`);
-                document.getElementById('buildTime').textContent = buildTime + 'ms';
-
-                // Log input/output details
-                log('📊 Model Details:');
-                log(`   - Input Names: ${session.inputNames.join(', ')}`);
-                log(`   - Output Names: ${session.outputNames.join(', ')}`);
-
-                updateStatus('✅ WebNN NPU Ready! Upload an image to classify.', 'success');
-                document.getElementById('uploadBtn').disabled = false;
-
-                log('🎯 System ready for inference. NPU should spike during inference.');
-
-            } catch (error) {
-                log(`❌ Error initializing WebNN: ${error.message}`);
-                log(`📝 Error stack: ${error.stack}`);
-                updateStatus(`Error: ${error.message}. Make sure you have NPU drivers installed and WebNN flag enabled.`, 'error');
-
-                log('💡 Troubleshooting:');
-                log('   1. Enable WebNN flag in edge://flags');
-                log('   2. Update NPU drivers');
-                log('   3. Use Microsoft Edge Canary/Dev');
-                log('   4. Check if your device has an NPU');
+        function updateStatus(text, type = 'info') {
+            const box = document.getElementById('statusBox');
+            box.textContent = text;
+            if (type === 'success') {
+                box.style.background = 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)';
+            } else if (type === 'error') {
+                box.style.background = 'linear-gradient(135deg, #f44336 0%, #da190b 100%)';
+            } else if (type === 'loading') {
+                box.style.background = 'linear-gradient(135deg, #ff9800 0%, #e68900 100%)';
+            } else {
+                box.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
             }
         }
 
-        async function preprocessImage(imageElement) {
+        async function initWebNN() {
+            try {
+                log('🚀 Starting WebNN initialization...', 'info');
+                updateStatus('⏳ Loading WebNN with NPU backend...', 'loading');
+
+                log('Setting ONNX Runtime options...', 'info');
+                ort.env.wasm.numThreads = 1;
+                ort.env.wasm.simd = true;
+
+                log('Configuring execution provider for NPU...', 'info');
+                log('  Provider: webnn', 'info');
+                log('  Device Type: npu (enforced)', 'info');
+                log('  Power Preference: high-performance', 'info');
+
+                // Using Hugging Face CDN for model (has proper CORS headers)
+                const modelUrl = 'https://huggingface.co/Xenova/mobilenetv2-1.4/resolve/main/onnx/model.onnx';
+                log(`📦 Model URL: ${modelUrl}`, 'info');
+                log('Downloading model (this may take 1-2 minutes on first load)...', 'warn');
+
+                const startBuild = performance.now();
+
+                const options = {
+                    executionProviders: [
+                        {
+                            name: 'webnn',
+                            deviceType: 'npu',
+                            powerPreference: 'high-performance'
+                        },
+                        { name: 'webnn', deviceType: 'gpu' },
+                        { name: 'webnn', deviceType: 'cpu' }
+                    ],
+                    graphOptimizationLevel: 'all',
+                    enableMemPattern: false,
+                    enableCpuMemArena: false
+                };
+
+                session = await ort.InferenceSession.create(modelUrl, options);
+
+                const buildTime = (performance.now() - startBuild).toFixed(2);
+                document.getElementById('buildTime').textContent = buildTime + 'ms';
+
+                log(`✅ Model loaded successfully!`, 'success');
+                log(`⏱️ Build time: ${buildTime}ms`, 'success');
+
+                // Get input/output info
+                log(`📊 Model Info:`, 'info');
+                log(`  Inputs: ${session.inputNames.join(', ')}`, 'info');
+                log(`  Outputs: ${session.outputNames.join(', ')}`, 'info');
+
+                // Log execution provider info
+                const providers = session.getMetadata();
+                log(`🎯 NPU Backend Ready for Inference!`, 'success');
+                log(`⚡ Watch your NPU utilization spike when running inference!`, 'success');
+
+                document.getElementById('uploadBtn').disabled = false;
+                document.getElementById('stressBtn').disabled = false;
+                updateStatus('✅ Ready! Upload image or run stress test', 'success');
+
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                log(`Stack: ${error.stack}`, 'error');
+
+                log('Troubleshooting:', 'warn');
+                log('  1. Enable WebNN API: edge://flags → Search "WebNN" → Enabled', 'warn');
+                log('  2. Update NPU drivers: Device Manager → Intel AI Boost / Hexagon', 'warn');
+                log('  3. Use Microsoft Edge Canary/Dev build', 'warn');
+                log('  4. Verify Snapdragon X series with NPU', 'warn');
+
+                updateStatus('❌ Failed to initialize WebNN', 'error');
+            }
+        }
+
+        async function preprocessImage(imgElement) {
             return new Promise((resolve) => {
                 const canvas = document.createElement('canvas');
                 canvas.width = 224;
                 canvas.height = 224;
                 const ctx = canvas.getContext('2d');
 
-                ctx.drawImage(imageElement, 0, 0, 224, 224);
+                ctx.drawImage(imgElement, 0, 0, 224, 224);
                 const imageData = ctx.getImageData(0, 0, 224, 224);
 
-                // Convert to RGB and normalize [0, 1]
+                // Normalize to [0, 1]
                 const float32Data = new Float32Array(3 * 224 * 224);
-
                 for (let i = 0; i < imageData.data.length; i += 4) {
                     const pixelIndex = i / 4;
-                    // RGB order, normalize to [0, 1]
-                    float32Data[pixelIndex] = imageData.data[i] / 255.0;  // R
-                    float32Data[pixelIndex + 224 * 224] = imageData.data[i + 1] / 255.0;  // G
-                    float32Data[pixelIndex + 224 * 224 * 2] = imageData.data[i + 2] / 255.0;  // B
+                    float32Data[pixelIndex] = imageData.data[i] / 255.0;
+                    float32Data[pixelIndex + 224 * 224] = imageData.data[i + 1] / 255.0;
+                    float32Data[pixelIndex + 224 * 224 * 2] = imageData.data[i + 2] / 255.0;
                 }
 
                 resolve(new ort.Tensor('float32', float32Data, [1, 3, 224, 224]));
             });
         }
 
-        async function classifyImage(imageTensor) {
+        async function runInference(tensor) {
             try {
-                log('🔄 Starting inference on NPU...');
-                updateStatus('🧠 Running inference on NPU...', 'running');
+                const startTime = performance.now();
 
-                const startInference = performance.now();
                 const feeds = {};
-                feeds[session.inputNames[0]] = imageTensor;
+                feeds[session.inputNames[0]] = tensor;
 
                 const results = await session.run(feeds);
-                const inferenceTime = (performance.now() - startInference).toFixed(2);
 
-                log(`✅ Inference completed in ${inferenceTime}ms`);
+                const inferenceTime = (performance.now() - startTime).toFixed(2);
+                totalInferenceTime += parseFloat(inferenceTime);
+                inferenceCount++;
+
                 document.getElementById('inferenceTime').textContent = inferenceTime + 'ms';
+                document.getElementById('totalRuns').textContent = inferenceCount;
+                document.getElementById('avgFps').textContent = ((1000 / totalInferenceTime) * inferenceCount).toFixed(1);
 
-                const output = results[session.outputNames[0]];
-                const predictions = Array.from(output.data);
-
-                // Get top 5 predictions
-                const top5 = predictions
-                    .map((prob, index) => ({ index, prob }))
-                    .sort((a, b) => b.prob - a.prob)
-                    .slice(0, 5);
-
-                log('📊 Top 5 Predictions:');
-                top5.forEach((pred, i) => {
-                    const className = imagenetClasses[pred.index] || `Class ${pred.index}`;
-                    const confidence = (pred.prob * 100).toFixed(2);
-                    log(`   ${i + 1}. ${className}: ${confidence}%`);
-                });
-
-                displayResults(top5);
-                updateStatus('✅ Classification complete!', 'success');
-
-                return top5;
+                return { results, inferenceTime };
             } catch (error) {
-                log(`❌ Inference error: ${error.message}`);
-                updateStatus(`Inference Error: ${error.message}`, 'error');
+                log(`Inference error: ${error.message}`, 'error');
                 throw error;
             }
         }
 
-        function displayResults(predictions) {
+        function displayResults(outputs) {
+            const output = outputs[session.outputNames[0]];
+            const predictions = Array.from(output.data);
+
+            const top5 = predictions
+                .map((prob, idx) => ({ idx, prob }))
+                .sort((a, b) => b.prob - a.prob)
+                .slice(0, 5);
+
             const resultsDiv = document.getElementById('results');
-            resultsDiv.innerHTML = '<h3>🎯 Classification Results:</h3>';
-
-            predictions.forEach((pred, index) => {
-                const className = imagenetClasses[pred.index] || `Class ${pred.index}`;
-                const confidence = (pred.prob * 100).toFixed(2);
-
-                const resultItem = document.createElement('div');
-                resultItem.className = 'result-item';
-                resultItem.innerHTML = `
-                    <span class="label">${index + 1}. ${className}</span>
-                    <span class="confidence">${confidence}%</span>
-                `;
-                resultsDiv.appendChild(resultItem);
-            });
-
+            resultsDiv.innerHTML = '<h3>🎯 Top 5 Classifications:</h3>';
             resultsDiv.style.display = 'block';
+
+            top5.forEach((pred, i) => {
+                const name = IMAGENET_CLASSES[pred.idx] || `Class ${pred.idx}`;
+                const conf = (pred.prob * 100).toFixed(2);
+
+                const item = document.createElement('div');
+                item.className = 'result-item';
+                item.innerHTML = `
+                    <span class="result-label">${i + 1}. ${name}</span>
+                    <span class="result-confidence">${conf}%</span>
+                `;
+                resultsDiv.appendChild(item);
+
+                log(`  ${i + 1}. ${name}: ${conf}%`, 'info');
+            });
         }
 
-        document.getElementById('imageInput').addEventListener('change', async (event) => {
-            const file = event.target.files[0];
+        document.getElementById('imageInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
             if (!file) return;
 
-            log(`📁 File selected: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`);
+            log(`📁 File: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`, 'info');
 
             const reader = new FileReader();
-            reader.onload = async (e) => {
+            reader.onload = async (ev) => {
                 const img = new Image();
                 img.onload = async () => {
-                    log(`🖼️ Image loaded: ${img.width}x${img.height}`);
+                    log(`🖼️ Image loaded: ${img.width}x${img.height}`, 'info');
 
-                    const imageContainer = document.getElementById('imageContainer');
-                    imageContainer.innerHTML = '';
-                    const previewImg = document.createElement('img');
-                    previewImg.id = 'previewImage';
-                    previewImg.src = e.target.result;
-                    imageContainer.appendChild(previewImg);
+                    const preview = document.getElementById('imagePreview');
+                    preview.innerHTML = `<img id="previewImage" src="${ev.target.result}">`;
 
-                    const tensor = await preprocessImage(img);
-                    log(`✅ Image preprocessed to tensor: [${tensor.dims.join(', ')}]`);
+                    currentTensor = await preprocessImage(img);
+                    log(`✅ Tensor ready: [1, 3, 224, 224]`, 'success');
 
-                    await classifyImage(tensor);
+                    updateStatus('Running inference on NPU...', 'loading');
+                    const { results, inferenceTime } = await runInference(currentTensor);
 
-                    document.getElementById('runInferenceBtn').disabled = false;
+                    displayResults(results);
+                    log(`⚡ Inference completed in ${inferenceTime}ms`, 'success');
+                    updateStatus('✅ Inference complete!', 'success');
                 };
-                img.src = e.target.result;
+                img.src = ev.target.result;
             };
             reader.readAsDataURL(file);
         });
 
-        async function runContinuousInference() {
-            const img = document.getElementById('previewImage');
-            if (!img) {
-                log('❌ No image loaded. Please upload an image first.');
+        async function startStressTest() {
+            if (!currentTensor) {
+                log('❌ No image loaded! Please upload an image first.', 'error');
                 return;
             }
 
-            log('🔥 Starting continuous inference to stress NPU...');
-            inferenceCount = 0;
-            document.getElementById('runInferenceBtn').style.display = 'none';
-            document.getElementById('stopInferenceBtn').style.display = 'block';
+            stressTesting = true;
+            document.getElementById('stressBtn').style.display = 'none';
+            document.getElementById('stopBtn').style.display = 'inline-block';
+            document.getElementById('uploadBtn').disabled = true;
 
-            const tensor = await preprocessImage(img);
+            log('🔥 Starting stress test (10 consecutive inferences)...', 'warn');
+            updateStatus('🔥 STRESS TESTING NPU...', 'loading');
 
-            inferenceInterval = setInterval(async () => {
-                inferenceCount++;
-                log(`🔄 Continuous Inference Run #${inferenceCount}`);
-                await classifyImage(tensor);
-            }, 100); // Run inference every 100ms to stress NPU
-        }
+            const startTime = performance.now();
 
-        function stopContinuousInference() {
-            if (inferenceInterval) {
-                clearInterval(inferenceInterval);
-                inferenceInterval = null;
-                log(`⏹️ Stopped continuous inference after ${inferenceCount} runs.`);
-                document.getElementById('runInferenceBtn').style.display = 'block';
-                document.getElementById('stopInferenceBtn').style.display = 'none';
+            for (let i = 0; i < 10 && stressTesting; i++) {
+                log(`Inference run ${i + 1}/10...`, 'info');
+                const { results, inferenceTime } = await runInference(currentTensor);
+                displayResults(results);
             }
+
+            const totalTime = ((performance.now() - startTime) / 1000).toFixed(2);
+            if (stressTesting) {
+                log(`✅ Stress test complete! Total time: ${totalTime}s`, 'success');
+                log(`📊 Average: ${(parseFloat(totalTime) / 10).toFixed(2)}s per inference`, 'success');
+                updateStatus('✅ Stress test finished! Check NPU usage in Task Manager', 'success');
+            }
+
+            document.getElementById('stressBtn').style.display = 'inline-block';
+            document.getElementById('stopBtn').style.display = 'none';
+            document.getElementById('uploadBtn').disabled = false;
+            stressTesting = false;
         }
 
-        // Initialize on page load
-        window.addEventListener('load', initializeWebNN);
+        function stopStress() {
+            stressTesting = false;
+            log('⏹️ Stress test stopped', 'warn');
+            document.getElementById('stressBtn').style.display = 'inline-block';
+            document.getElementById('stopBtn').style.display = 'none';
+            document.getElementById('uploadBtn').disabled = false;
+            updateStatus('✅ Ready', 'success');
+        }
+
+        function clearConsole() {
+            document.getElementById('console').innerHTML = '';
+        }
+
+        window.addEventListener('load', initWebNN);
     </script>
 </body>
 </html>
