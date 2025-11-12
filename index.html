@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebNN NPU Image Classification - MobileNetV2</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .info-box {
+            background: #f0f7ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .status.loading {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status.running {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            margin: 10px 0;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        #imageContainer {
+            margin: 20px 0;
+            text-align: center;
+        }
+        #previewImage {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .results {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .result-item .label {
+            font-weight: bold;
+            color: #333;
+        }
+        .result-item .confidence {
+            color: #667eea;
+            font-weight: bold;
+        }
+        .logs {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+        .log-entry {
+            margin: 5px 0;
+        }
+        .log-timestamp {
+            color: #888;
+        }
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .metric-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 32px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .metric-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧠 WebNN NPU Image Classification</h1>
+        <p class="subtitle">MobileNetV2 with NPU Acceleration</p>
+
+        <div class="info-box">
+            <strong>⚡ NPU Accelerated Inference</strong><br>
+            This demo uses the WebNN API to run MobileNetV2 image classification directly on your NPU (Neural Processing Unit).
+            The model is optimized for Float16 precision to maximize NPU utilization.
+        </div>
+
+        <div id="statusContainer">
+            <div id="status" class="status loading">Initializing WebNN...</div>
+        </div>
+
+        <div class="metrics">
+            <div class="metric-card">
+                <div class="metric-label">Build Time</div>
+                <div class="metric-value" id="buildTime">-</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Inference Time</div>
+                <div class="metric-value" id="inferenceTime">-</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Device Type</div>
+                <div class="metric-value" id="deviceType">NPU</div>
+            </div>
+        </div>
+
+        <input type="file" id="imageInput" accept="image/*" style="display: none;">
+        <button id="uploadBtn" onclick="document.getElementById('imageInput').click()">
+            📸 Upload Image for Classification
+        </button>
+        <button id="runInferenceBtn" onclick="runContinuousInference()" disabled>
+            🚀 Run Continuous Inference (Stress NPU)
+        </button>
+        <button id="stopInferenceBtn" onclick="stopContinuousInference()" style="display:none;">
+            ⏹️ Stop Inference
+        </button>
+
+        <div id="imageContainer"></div>
+        <div id="results" class="results" style="display: none;"></div>
+
+        <h3>Console Logs:</h3>
+        <div id="logs" class="logs"></div>
+    </div>
+
+    <!-- Load ONNX Runtime Web with WebNN support -->
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.0/dist/ort.all.min.js"></script>
+
+    <script>
+        let session = null;
+        let inferenceInterval = null;
+        let inferenceCount = 0;
+        const imagenetClasses = [
+            "tench", "goldfish", "great white shark", "tiger shark", "hammerhead shark", 
+            "electric ray", "stingray", "rooster", "hen", "ostrich", "brambling", 
+            "goldfinch", "house finch", "junco", "indigo bunting", "American robin", 
+            "bulbul", "jay", "magpie", "chickadee", "American dipper", "kite", 
+            "bald eagle", "vulture", "great grey owl", "fire salamander", "smooth newt", 
+            "newt", "spotted salamander", "axolotl", "American bullfrog", "tree frog", 
+            "tailed frog", "loggerhead sea turtle", "leatherback sea turtle", "mud turtle", 
+            "terrapin", "box turtle", "banded gecko", "green iguana", "Carolina anole", 
+            "desert grassland whiptail lizard", "agama", "frilled-necked lizard", "alligator lizard", 
+            "Gila monster", "European green lizard", "chameleon", "Komodo dragon", "Nile crocodile", 
+            "American alligator"
+        ];
+
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `<span class="log-timestamp">[${timestamp}]</span> ${message}`;
+            const logsContainer = document.getElementById('logs');
+            logsContainer.appendChild(logEntry);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+            console.log(message);
+        }
+
+        function updateStatus(message, type) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+        }
+
+        async function initializeWebNN() {
+            try {
+                log('🚀 Starting WebNN initialization...');
+                updateStatus('Initializing WebNN with NPU backend...', 'loading');
+
+                // Configure ONNX Runtime to use WebNN with NPU
+                log('📋 Setting up execution providers...');
+                const executionProviders = [
+                    {
+                        name: 'webnn',
+                        deviceType: 'npu',  // Force NPU usage
+                        powerPreference: 'high-performance'  // Maximum performance
+                    }
+                ];
+
+                log('⚙️ Execution Provider Config:');
+                log(`   - Provider: webnn`);
+                log(`   - Device Type: NPU (forced)`);
+                log(`   - Power Preference: high-performance`);
+
+                // Model URL - Using MobileNetV2 in ONNX format
+                const modelUrl = 'https://github.com/onnx/models/raw/main/validated/vision/classification/mobilenet/model/mobilenetv2-12.onnx';
+                log(`📦 Loading model from: ${modelUrl}`);
+
+                updateStatus('Downloading MobileNetV2 model...', 'loading');
+
+                const startBuild = performance.now();
+                session = await ort.InferenceSession.create(modelUrl, {
+                    executionProviders: executionProviders,
+                    graphOptimizationLevel: 'all',
+                    enableCpuMemArena: false,
+                    enableMemPattern: false
+                });
+                const buildTime = (performance.now() - startBuild).toFixed(2);
+
+                log(`✅ Model loaded and compiled successfully!`);
+                log(`⏱️ Build time: ${buildTime}ms`);
+                document.getElementById('buildTime').textContent = buildTime + 'ms';
+
+                // Log input/output details
+                log('📊 Model Details:');
+                log(`   - Input Names: ${session.inputNames.join(', ')}`);
+                log(`   - Output Names: ${session.outputNames.join(', ')}`);
+
+                updateStatus('✅ WebNN NPU Ready! Upload an image to classify.', 'success');
+                document.getElementById('uploadBtn').disabled = false;
+
+                log('🎯 System ready for inference. NPU should spike during inference.');
+
+            } catch (error) {
+                log(`❌ Error initializing WebNN: ${error.message}`);
+                log(`📝 Error stack: ${error.stack}`);
+                updateStatus(`Error: ${error.message}. Make sure you have NPU drivers installed and WebNN flag enabled.`, 'error');
+
+                log('💡 Troubleshooting:');
+                log('   1. Enable WebNN flag in edge://flags');
+                log('   2. Update NPU drivers');
+                log('   3. Use Microsoft Edge Canary/Dev');
+                log('   4. Check if your device has an NPU');
+            }
+        }
+
+        async function preprocessImage(imageElement) {
+            return new Promise((resolve) => {
+                const canvas = document.createElement('canvas');
+                canvas.width = 224;
+                canvas.height = 224;
+                const ctx = canvas.getContext('2d');
+
+                ctx.drawImage(imageElement, 0, 0, 224, 224);
+                const imageData = ctx.getImageData(0, 0, 224, 224);
+
+                // Convert to RGB and normalize [0, 1]
+                const float32Data = new Float32Array(3 * 224 * 224);
+
+                for (let i = 0; i < imageData.data.length; i += 4) {
+                    const pixelIndex = i / 4;
+                    // RGB order, normalize to [0, 1]
+                    float32Data[pixelIndex] = imageData.data[i] / 255.0;  // R
+                    float32Data[pixelIndex + 224 * 224] = imageData.data[i + 1] / 255.0;  // G
+                    float32Data[pixelIndex + 224 * 224 * 2] = imageData.data[i + 2] / 255.0;  // B
+                }
+
+                resolve(new ort.Tensor('float32', float32Data, [1, 3, 224, 224]));
+            });
+        }
+
+        async function classifyImage(imageTensor) {
+            try {
+                log('🔄 Starting inference on NPU...');
+                updateStatus('🧠 Running inference on NPU...', 'running');
+
+                const startInference = performance.now();
+                const feeds = {};
+                feeds[session.inputNames[0]] = imageTensor;
+
+                const results = await session.run(feeds);
+                const inferenceTime = (performance.now() - startInference).toFixed(2);
+
+                log(`✅ Inference completed in ${inferenceTime}ms`);
+                document.getElementById('inferenceTime').textContent = inferenceTime + 'ms';
+
+                const output = results[session.outputNames[0]];
+                const predictions = Array.from(output.data);
+
+                // Get top 5 predictions
+                const top5 = predictions
+                    .map((prob, index) => ({ index, prob }))
+                    .sort((a, b) => b.prob - a.prob)
+                    .slice(0, 5);
+
+                log('📊 Top 5 Predictions:');
+                top5.forEach((pred, i) => {
+                    const className = imagenetClasses[pred.index] || `Class ${pred.index}`;
+                    const confidence = (pred.prob * 100).toFixed(2);
+                    log(`   ${i + 1}. ${className}: ${confidence}%`);
+                });
+
+                displayResults(top5);
+                updateStatus('✅ Classification complete!', 'success');
+
+                return top5;
+            } catch (error) {
+                log(`❌ Inference error: ${error.message}`);
+                updateStatus(`Inference Error: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        function displayResults(predictions) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<h3>🎯 Classification Results:</h3>';
+
+            predictions.forEach((pred, index) => {
+                const className = imagenetClasses[pred.index] || `Class ${pred.index}`;
+                const confidence = (pred.prob * 100).toFixed(2);
+
+                const resultItem = document.createElement('div');
+                resultItem.className = 'result-item';
+                resultItem.innerHTML = `
+                    <span class="label">${index + 1}. ${className}</span>
+                    <span class="confidence">${confidence}%</span>
+                `;
+                resultsDiv.appendChild(resultItem);
+            });
+
+            resultsDiv.style.display = 'block';
+        }
+
+        document.getElementById('imageInput').addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            log(`📁 File selected: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`);
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const img = new Image();
+                img.onload = async () => {
+                    log(`🖼️ Image loaded: ${img.width}x${img.height}`);
+
+                    const imageContainer = document.getElementById('imageContainer');
+                    imageContainer.innerHTML = '';
+                    const previewImg = document.createElement('img');
+                    previewImg.id = 'previewImage';
+                    previewImg.src = e.target.result;
+                    imageContainer.appendChild(previewImg);
+
+                    const tensor = await preprocessImage(img);
+                    log(`✅ Image preprocessed to tensor: [${tensor.dims.join(', ')}]`);
+
+                    await classifyImage(tensor);
+
+                    document.getElementById('runInferenceBtn').disabled = false;
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        async function runContinuousInference() {
+            const img = document.getElementById('previewImage');
+            if (!img) {
+                log('❌ No image loaded. Please upload an image first.');
+                return;
+            }
+
+            log('🔥 Starting continuous inference to stress NPU...');
+            inferenceCount = 0;
+            document.getElementById('runInferenceBtn').style.display = 'none';
+            document.getElementById('stopInferenceBtn').style.display = 'block';
+
+            const tensor = await preprocessImage(img);
+
+            inferenceInterval = setInterval(async () => {
+                inferenceCount++;
+                log(`🔄 Continuous Inference Run #${inferenceCount}`);
+                await classifyImage(tensor);
+            }, 100); // Run inference every 100ms to stress NPU
+        }
+
+        function stopContinuousInference() {
+            if (inferenceInterval) {
+                clearInterval(inferenceInterval);
+                inferenceInterval = null;
+                log(`⏹️ Stopped continuous inference after ${inferenceCount} runs.`);
+                document.getElementById('runInferenceBtn').style.display = 'block';
+                document.getElementById('stopInferenceBtn').style.display = 'none';
+            }
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', initializeWebNN);
+    </script>
+</body>
+</html>
